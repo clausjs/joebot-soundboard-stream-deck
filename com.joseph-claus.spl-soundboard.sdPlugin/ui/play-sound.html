@@ -1,0 +1,30 @@
+<html>
+    <head lang="en">
+        <title>Select Sound</title>
+        <meta charset="utf-8" />
+        <script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+    </head>
+  <body>
+    <sdpi-item label="Sound">
+        <sdpi-select 
+            id='sound-dropdown' 
+            setting="sound" 
+            placeholder="Select sound..."
+            loading="Loading sounds..."
+            datasource="getClips"
+            hot-reload
+        >
+            <!-- <optgroup label="Primary Colors">
+                <option value="#ff0000">Red</option>
+                <option value="#00ff00">Green</option>
+                <option value="#0000ff">Blue</option>
+            </optgroup>
+            <option value="#000000">Black</option>
+            <option value="#ffffff">White</option> -->
+            <option value="test1">Option 1</option>
+            <option value="test2">Option 2</option>
+            <option value="test3">Option 3</option>
+        </sdpi-select>
+    </sdpi-item>
+  </body>
+</html>

@@ -1,0 +1,45 @@
+{
+	"Name": "spl-soundboard",
+	"Version": "0.1.0.0",
+	"Author": "Joseph Claus",
+	"Actions": [
+		{
+			"UUID": "com.joseph-claus.spl-soundboard.play",
+			"Name": "Play Sound",
+			"Tooltip": "Play a selected sound from Save Point Lodge",
+			"PropertyInspectorPath": "ui/play-sound.html",
+			"Icon": "imgs/actions/play/play",
+			"States": [
+				{
+					"Image": "imgs/actions/play/play",
+					"Title": "Play",
+					"FontSize": "14"
+				}
+			]
+		}
+	],
+	"Category": "spl-soundboard",
+	"CategoryIcon": "imgs/plugin/category-icon",
+	"CodePath": "bin/plugin.js",
+	"Description": "Send soundboard requests to SPL Soundboard!",
+	"Icon": "imgs/plugin/marketplace",
+	"SDKVersion": 2,
+	"Software": {
+		"MinimumVersion": "6.5"
+	},
+	"OS": [
+		{
+			"Platform": "mac",
+			"MinimumVersion": "12"
+		},
+		{
+			"Platform": "windows",
+			"MinimumVersion": "10"
+		}
+	],
+	"Nodejs": {
+		"Version": "20",
+		"Debug": "enabled"
+	},
+	"UUID": "com.joseph-claus.spl-soundboard"
+}
