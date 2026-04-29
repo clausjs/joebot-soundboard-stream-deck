@@ -1,5 +1,5 @@
 {
-	"Name": "spl-soundboard",
+	"Name": "SPL Soundboard",
 	"Version": "0.1.0.0",
 	"Author": "Joseph Claus",
 	"Actions": [
@@ -21,7 +21,7 @@
 	"Category": "spl-soundboard",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
-	"Description": "Send soundboard requests to SPL Soundboard!",
+	"Description": "Trigger sounds from Save Point Lodge's soundboard directly from your Stream Deck.",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 2,
 	"Software": {
