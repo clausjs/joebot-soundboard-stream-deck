@@ -90,29 +90,41 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
      * settings using `setSettings` and `getSettings`.
      */
     override async onKeyUp(ev: KeyUpEvent<PlaySoundSettings>): Promise<void> {
-        const { sound } = ev.payload.settings || {};
+        const { sound: soundString } = ev.payload.settings || '{}';
         const { token } = this.settings;
-        streamDeck.logger.debug("onKeyUp - Attempting to play sound:", sound, "with token:", token);
+        streamDeck.logger.debug("onKeyUp - Attempting to play sound:", soundString, "with token:", token);
 
         if (!token) {
             throw new Error("Token not configured.");
         }
 
-        if (!sound) {
-            streamDeck.logger.warn("No sound selected to play", sound);
+        if (!soundString) {
+            streamDeck.logger.warn("No sound selected to play", soundString);
             return;
         }
 
-        await fetch(`${botUrlBase}/api/soundboard/${token}/postMsg`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Referer": "streamdeck://com.joseph-claus.spl-soundboard.play"
-            },
-            body: JSON.stringify({
-                sound
-            })
-        });
+        try {
+            const sound: Sound = JSON.parse(soundString);
+
+            const req = await fetch(`${botUrlBase}/api/soundboard/${token}/postMsg`, {
+                method: "POST",
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json",
+                    "Referer": "streamdeck://com.joseph-claus.spl-soundboard.play",
+                    "requester": "streamdeck://com.joseph-claus.spl-soundboard.play"
+                },
+                body: JSON.stringify(sound)
+            });
+            const res = await req.json();
+            if (res.success) {
+                streamDeck.logger.debug("Sound played successfully");
+                ev.action.showOk();
+            }
+        } catch (err) {
+            streamDeck.logger.error("Error playing sound:", err);
+            ev.action.showAlert();
+        }
     }
 
     override async onSendToPlugin(ev: SendToPluginEvent<JsonValue, PlaySoundSettings>): Promise<void> {
@@ -141,7 +153,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
         return new Promise(async (resolve, reject) => {
             let res: Response | undefined;
             try {
-                res = await fetch(`${urlBase}/api/soundboard?token=${token}`, {
+                res = await fetch(`${webUrlBase}/api/soundboard?token=${token}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
