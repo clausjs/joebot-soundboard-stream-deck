@@ -1,4 +1,4 @@
-# SPL Soundboard
+# SPL Soundboard - Stream Deck Plugin
 
 Stream Deck plugin for triggering Save Point Lodge soundboard clips.
 
