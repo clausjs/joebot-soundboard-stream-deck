@@ -22,7 +22,7 @@
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
 	"Description": "Trigger sounds from Save Point Lodge's soundboard directly from your Stream Deck.",
-	"Icon": "imgs/plugin/marketplace",
+	"Icon": "imgs/plugin/spl-soundboard-logo",
 	"SDKVersion": 2,
 	"Software": {
 		"MinimumVersion": "6.5"
