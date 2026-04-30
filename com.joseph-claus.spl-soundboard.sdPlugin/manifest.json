@@ -13,12 +13,12 @@
 				{
 					"Image": "imgs/actions/play/play",
 					"Title": "Play",
-					"FontSize": "14"
+					"FontSize": 10
 				}
 			]
 		}
 	],
-	"Category": "spl-soundboard",
+	"Category": "SPL Soundboard",
 	"CategoryIcon": "imgs/plugin/category-icon",
 	"CodePath": "bin/plugin.js",
 	"Description": "Trigger sounds from Save Point Lodge's soundboard directly from your Stream Deck.",
