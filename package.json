@@ -4,6 +4,7 @@
         "watch": "rollup -c -w --watch.onEnd=\"streamdeck restart com.joseph-claus.spl-soundboard\""
     },
     "type": "module",
+    "version": "0.1.0",
     "devDependencies": {
         "@elgato/cli": "^1.4.0",
         "@rollup/plugin-commonjs": "^28.0.0",
