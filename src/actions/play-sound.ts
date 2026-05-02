@@ -1,9 +1,8 @@
-import streamDeck, { action, DidReceiveSettingsEvent, JsonValue, KeyDownEvent, KeyUpEvent, PropertyInspectorDidAppearEvent, SendToPluginEvent, SingletonAction, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
+import streamDeck, { action, DidReceiveSettingsEvent, KeyUpEvent, PropertyInspectorDidAppearEvent, SendToPluginEvent, SingletonAction, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
+import { JsonValue } from "@elgato/utils";
 import { DataSourcePayload, DataSourceResult } from "../sdpi";
 
-const testing: boolean = false;
-const webUrlBase: string = testing ? "http://localhost:3000" : "https://dev.savepointlodge.com";
-const botUrlBase: string = testing ? "http://localhost:8080" : "https://joebotdiscord.com";
+const testAuth: boolean = false;
 
 /**
  * An example action class that displays a count that increments by one each time the button is pressed.
@@ -12,12 +11,27 @@ const botUrlBase: string = testing ? "http://localhost:8080" : "https://joebotdi
 export class PlaySound extends SingletonAction<PlaySoundSettings> {
     private settings: SPLSoundboardSettings = {};
     private clips: { id: string; name: string; sound: string; volume: number }[] = [];
+    public webUrlBase: string = "https://savepointlodge.com";
+    public botUrlBase: string = "https://joebotdiscord.com";
 
     constructor() {
         super();
 
         this.clips = [];
-    }
+        streamDeck.settings.getGlobalSettings<SPLSoundboardSettings>().then((settings) => {
+            if (settings.webUrlBase) {
+                this.webUrlBase = settings.webUrlBase;
+            }
+            if (settings.botUrlBase) {
+                this.botUrlBase = settings.botUrlBase;
+            }
+        });
+
+        streamDeck.settings.onDidReceiveGlobalSettings<SPLSoundboardSettings>((ev) => {
+            this.settings = ev.settings;
+            this.fetchClipsAndUpdatePI();
+        });
+    }   
     
     private generatePIPayloadFromClips(): DataSourcePayload {
         const items = this.clips.map((c: any) => {
@@ -33,6 +47,11 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
         }
     }
 
+    private clearTokenAndRefetch() {
+        streamDeck.logger.debug("Clearing token and refetching clips");
+        streamDeck.settings.setGlobalSettings<SPLSoundboardSettings>({ token: undefined });
+    }
+
     /**
      * The {@link SingletonAction.onWillAppear} event is useful for setting the visual representation of an action when it becomes visible. This could be due to the Stream Deck first
      * starting up, or the user navigating between pages / folders etc.. There is also an inverse of this event in the form of {@link streamDeck.client.onWillDisappear}.
@@ -40,11 +59,8 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
     override async onWillAppear(ev: WillAppearEvent<PlaySoundSettings>): Promise<void> {
         this.settings = await streamDeck.settings.getGlobalSettings<SPLSoundboardSettings>();
 
-        if (this.settings.token && this.settings.token !== "") {
-            streamDeck.logger.debug("onWillAppear - Token set");
-        } else {
-            streamDeck.logger.debug("onWillAppear - Opening setup URL");
-            streamDeck.system.openUrl(`${webUrlBase}/streamdeck-setup`);
+        if (this.settings.token && testAuth) {
+            this.clearTokenAndRefetch();
         }
     }
 
@@ -54,32 +70,41 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
      * @param ev Information about the event, including the source action and contextual payload information.
      */
     override async onWillDisappear?(ev: WillDisappearEvent<PlaySoundSettings>): Promise<void> {
-        streamDeck.logger.debug("onWillDisappear - clearing clips for PlaySound");
+        streamDeck.logger.trace("onWillDisappear - clearing clips for PlaySound");
         this.clips = [];
     }
 
     override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<PlaySoundSettings>): Promise<void> {
-        streamDeck.logger.debug("onDidReceiveSettings - Settings received for PlaySound");
+        streamDeck.logger.trace("onDidReceiveSettings - Settings received for PlaySound");
         const { sound: soundString } = ev.payload.settings || {};
         const sound = soundString ? JSON.parse(soundString) : null;
         if (sound) {
-            streamDeck.logger.debug("onDidReceiveSettings - Setting title to sound name:", sound.name);
+            streamDeck.logger.trace("onDidReceiveSettings - Setting title to sound name:", sound.name);
             ev.action.setTitle(sound.name);
         }
-        // this.actionSettings = ev.payload.settings || {};
+    }
+
+    private async fetchClipsAndUpdatePI() {
+        try {
+            // Fetch the soundboard clips if not already fetched.
+            const clips = await this.#getSoundboardClips();
+            //@ts-ignore
+            this.clips = clips;
+            streamDeck.ui.sendToPropertyInspector(this.generatePIPayloadFromClips());
+        } catch (err) {
+            streamDeck.logger.error("Error fetching clips for property inspector:", err);
+        }
     }
 
     override async onPropertyInspectorDidAppear(ev: PropertyInspectorDidAppearEvent<PlaySoundSettings>): Promise<void> {
-        // Send the current clips to the property inspector.
-        if (this.clips.length) {
-            streamDeck.ui.current?.sendToPropertyInspector(this.generatePIPayloadFromClips());
-        } else {
-            // Fetch the soundboard clips if not already fetched.
-            const clips = await this.#getSoundboardClips();
-            streamDeck.logger.debug("onPropertyInspectorDidAppear - Fetched soundboard clips:", clips);
-            //@ts-ignore
-            this.clips = clips;
-            streamDeck.ui.current?.sendToPropertyInspector(this.generatePIPayloadFromClips());
+        const { token } = this.settings;
+        if (token) {
+            // Send the current clips to the property inspector.
+            if (this.clips.length) {
+                streamDeck.ui.sendToPropertyInspector(this.generatePIPayloadFromClips());
+            } else {
+                await this.fetchClipsAndUpdatePI();
+            }
         }
     }
 
@@ -92,7 +117,6 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
     override async onKeyUp(ev: KeyUpEvent<PlaySoundSettings>): Promise<void> {
         const { sound: soundString } = ev.payload.settings || '{}';
         const { token } = this.settings;
-        streamDeck.logger.debug("onKeyUp - Attempting to play sound:", soundString, "with token:", token);
 
         if (!token) {
             throw new Error("Token not configured.");
@@ -106,7 +130,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
         try {
             const sound: Sound = JSON.parse(soundString);
 
-            const req = await fetch(`${botUrlBase}/api/soundboard/${token}/postMsg`, {
+            const req = await fetch(`${this.botUrlBase}/api/soundboard/${token}/postMsg`, {
                 method: "POST",
                 headers: {
                     "Accept": "application/json",
@@ -117,10 +141,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
                 body: JSON.stringify(sound)
             });
             const res = await req.json();
-            if (res.success) {
-                streamDeck.logger.debug("Sound played successfully");
-                ev.action.showOk();
-            }
+            if (res.success) ev.action.showOk();
         } catch (err) {
             streamDeck.logger.error("Error playing sound:", err);
             ev.action.showAlert();
@@ -128,22 +149,20 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
     }
 
     override async onSendToPlugin(ev: SendToPluginEvent<JsonValue, PlaySoundSettings>): Promise<void> {
+        streamDeck.logger.trace("onSendToPlugin - Received message from property inspector");
         // Check if the payload is requesting a data source, i.e. the structure is { event: string }
 		if (ev.payload instanceof Object && "event" in ev.payload && ev.payload.event === "getClips" && this.settings.token !== "") {
             if (this.clips.length) {
                 // Send the product ranges to the property inspector.
-                streamDeck.ui.current?.sendToPropertyInspector(this.generatePIPayloadFromClips());
+                streamDeck.ui.sendToPropertyInspector(this.generatePIPayloadFromClips());
             } else {
-                const clips = await this.#getSoundboardClips();
-                streamDeck.logger.debug("onSendToPlugin - Fetched soundboard clips:", clips);
-                //@ts-ignore
-                this.clips = clips;
-                streamDeck.ui.current?.sendToPropertyInspector(this.generatePIPayloadFromClips());
+                this.fetchClipsAndUpdatePI();
             }
         }
     }
 
     async #getSoundboardClips(): Promise<DataSourceResult> {
+        streamDeck.logger.trace("#getSoundboardClips - Fetching soundboard clips");
         const { token } = this.settings;
 
         if (!token || token === "") {
@@ -153,7 +172,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
         return new Promise(async (resolve, reject) => {
             let res: Response | undefined;
             try {
-                res = await fetch(`${webUrlBase}/api/soundboard?token=${token}`, {
+                res = await fetch(`${this.webUrlBase}/api/soundboard?token=${token}`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -194,5 +213,7 @@ type Sound = {
 }
 
 type SPLSoundboardSettings = {
+    webUrlBase?: string;
+    botUrlBase?: string;
     token?: string;
 }

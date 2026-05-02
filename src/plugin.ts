@@ -1,25 +1,27 @@
-import streamDeck, { DidReceiveDeepLinkEvent, LogLevel } from "@elgato/streamdeck";
+import streamDeck, { DidReceiveDeepLinkEvent } from "@elgato/streamdeck";
 
 import { PlaySound } from "./actions/play-sound";
 
-// We can enable "trace" logging so that all messages between the Stream Deck, and the plugin are recorded. When storing sensitive information
-streamDeck.logger.setLevel(LogLevel.TRACE);
+const testing: boolean = false;
+streamDeck.settings.setGlobalSettings({
+    webUrlBase: testing ? "http://localhost:3000" : "https://dev.savepointlodge.com",
+    botUrlBase: testing ? "http://localhost:8080" : "https://joebotdiscord.com",
+});
 
-// Register the increment action.
-// streamDeck.actions.registerAction(new IncrementCounter());
-streamDeck.actions.registerAction(new PlaySound());
+streamDeck.logger.setLevel('error');
 
 streamDeck.system.onDidReceiveDeepLink(async (ev: DidReceiveDeepLinkEvent) => {
-    streamDeck.logger.debug("Received deep link - path:", ev.url.path);
-    streamDeck.logger.debug("Received deep link - query:", ev.url.query);
+    streamDeck.logger.trace("Received deep link");
+    streamDeck.logger.debug("Received deep link with URL:", ev.url);
     const { path, query } = ev.url;
     if (path === '/settings' && query !== "") {
-        const token = new URLSearchParams(query).get("token");
-        streamDeck.settings.setGlobalSettings({
-            token: token || "",
-        })
+        const token = new URLSearchParams(query).get("token") ?? undefined;
+        streamDeck.ui.sendToPropertyInspector({
+            event: "token-retrieved",
+            token
+        });
     }
 });
 
-// Finally, connect to the Stream Deck.
+streamDeck.actions.registerAction(new PlaySound());
 streamDeck.connect();

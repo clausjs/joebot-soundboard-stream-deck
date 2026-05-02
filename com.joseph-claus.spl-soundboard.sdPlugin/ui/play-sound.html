@@ -14,17 +14,52 @@
             datasource="getClips"
             hot-reload
         >
-            <!-- <optgroup label="Primary Colors">
-                <option value="#ff0000">Red</option>
-                <option value="#00ff00">Green</option>
-                <option value="#0000ff">Blue</option>
-            </optgroup>
-            <option value="#000000">Black</option>
-            <option value="#ffffff">White</option> -->
-            <option value="test1">Option 1</option>
-            <option value="test2">Option 2</option>
-            <option value="test3">Option 3</option>
         </sdpi-select>
+        <sdpi-button hidden="true" id="auth_button" label="authenticate" onclick="authenticate()">Authenticate</sdpi-button>
     </sdpi-item>
+    <script>
+        // (async function() {
+
+        // })();
+        const { streamDeckClient } = SDPIComponents;
+        
+        function showAuthentication() {
+            const dropdown = document.getElementById("sound-dropdown");
+            const authButton = document.getElementById("auth_button");
+            dropdown.hidden = true;
+            authButton.hidden = false;
+        }
+
+        function hideAuthentication() {
+            const dropdown = document.getElementById("sound-dropdown");
+            const authButton = document.getElementById("auth_button");
+            dropdown.hidden = false;
+            authButton.hidden = true;
+        }
+
+        streamDeckClient.getGlobalSettings().then(settings => {
+            if (!settings.token) {
+                showAuthentication();
+            }
+        });
+
+        streamDeckClient.sendToPropertyInspector.subscribe(async (ev) => {
+            if (ev.payload.event === "token-retrieved") {
+                const settings = await streamDeckClient.getGlobalSettings();
+                await streamDeckClient.setGlobalSettings({
+                    ...settings,
+                    token: ev.payload.token
+                });
+                hideAuthentication();
+            }
+        });
+        
+        function authenticate() {
+            streamDeckClient.getGlobalSettings().then(settings => {
+                const { webUrlBase } = settings;
+                streamDeckClient.send('openUrl', { url: `${webUrlBase}/streamdeck-setup` });
+            });
+        }
+    </script>
   </body>
 </html>
