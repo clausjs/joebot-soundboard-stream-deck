@@ -28,7 +28,7 @@ jobs:
       - run: mkdir -p dist
       - run: npx streamdeck pack --no-update-check --force --output dist com.joseph-claus.spl-soundboard.sdPlugin
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: spl-soundboard-streamdeck-plugin
           path: dist/*.streamDeckPlugin
