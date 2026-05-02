@@ -1,0 +1,35 @@
+name: Package Plugin
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx streamdeck validate --no-update-check com.joseph-claus.spl-soundboard.sdPlugin
+      - run: mkdir -p dist
+      - run: npx streamdeck pack --no-update-check --force --output dist com.joseph-claus.spl-soundboard.sdPlugin
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: spl-soundboard-streamdeck-plugin
+          path: dist/*.streamDeckPlugin
+          if-no-files-found: error

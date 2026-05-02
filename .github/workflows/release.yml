@@ -1,0 +1,72 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v[1-9]*.[0-9]*.[0-9]*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Version tag to release, such as v0.2.0
+        required: true
+        type: string
+      prerelease:
+        description: Mark the GitHub release as a prerelease
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Resolve release options
+        id: release
+        run: |
+          tag_name="${GITHUB_REF_NAME}"
+          prerelease="false"
+
+          if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
+            tag_name="${{ inputs.tag }}"
+            prerelease="${{ inputs.prerelease }}"
+          fi
+
+          case "${tag_name}" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "::error::Release tag must look like a v-prefixed version, such as v0.2.0."
+              exit 1
+              ;;
+          esac
+
+          release_flags=""
+          if [ "${prerelease}" = "true" ]; then
+            release_flags="--prerelease"
+          fi
+
+          echo "tag=${tag_name}" >> "${GITHUB_OUTPUT}"
+          echo "release_flags=${release_flags}" >> "${GITHUB_OUTPUT}"
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx streamdeck validate --no-update-check com.joseph-claus.spl-soundboard.sdPlugin
+      - run: mkdir -p dist
+      - run: npx streamdeck pack --no-update-check --force --output dist com.joseph-claus.spl-soundboard.sdPlugin
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ steps.release.outputs.tag }}" dist/*.streamDeckPlugin --generate-notes ${{ steps.release.outputs.release_flags }}
