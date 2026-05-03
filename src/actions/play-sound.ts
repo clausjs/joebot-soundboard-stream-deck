@@ -10,7 +10,7 @@ const testAuth: boolean = false;
 @action({ UUID: "com.joseph-claus.spl-soundboard.play" })
 export class PlaySound extends SingletonAction<PlaySoundSettings> {
     private settings: SPLSoundboardSettings = {};
-    private clips: { id: string; name: string; sound: string; volume: number }[] = [];
+    private clips: Sound[] = [];
     public webUrlBase: string = "https://savepointlodge.com";
     public botUrlBase: string = "https://joebotdiscord.com";
 
@@ -34,7 +34,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
     }   
     
     private generatePIPayloadFromClips(): DataSourcePayload {
-        const items = this.clips.map((c: any) => {
+        const items = this.clips.map((c: Sound) => {
             return {
                 label: c.name,
                 value: JSON.stringify(c)
@@ -88,8 +88,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
         try {
             // Fetch the soundboard clips if not already fetched.
             const clips = await this.#getSoundboardClips();
-            //@ts-ignore
-            this.clips = clips;
+            this.clips = clips.sort((a, b) => a.name.localeCompare(b.name));
             streamDeck.ui.sendToPropertyInspector(this.generatePIPayloadFromClips());
         } catch (err) {
             streamDeck.logger.error("Error fetching clips for property inspector:", err);
@@ -161,7 +160,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
         }
     }
 
-    async #getSoundboardClips(): Promise<DataSourceResult> {
+    async #getSoundboardClips(): Promise<Sound[]> {
         streamDeck.logger.trace("#getSoundboardClips - Fetching soundboard clips");
         const { token } = this.settings;
 
