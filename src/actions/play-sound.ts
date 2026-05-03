@@ -34,7 +34,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
     }   
     
     private generatePIPayloadFromClips(): DataSourcePayload {
-        const items = this.clips.map((c: any) => {
+        const items = this.clips.sort((a, b) => a.name.localeCompare(b.name)).map((c: any) => {
             return {
                 label: c.name,
                 value: JSON.stringify(c)
