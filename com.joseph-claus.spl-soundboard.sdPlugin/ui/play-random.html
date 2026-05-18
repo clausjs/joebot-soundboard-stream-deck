@@ -6,31 +6,18 @@
     </head>
   <body>
     <sdpi-item label="Sound">
-        <sdpi-select 
-            id='sound-dropdown' 
-            setting="sound" 
-            placeholder="Select sound..."
-            loading="Loading sounds..."
-            datasource="getClips"
-            hot-reload
-        >
-        </sdpi-select>
         <sdpi-button hidden="true" id="auth_button" label="authenticate" onclick="authenticate()">Authenticate</sdpi-button>
     </sdpi-item>
     <script>
         const { streamDeckClient } = SDPIComponents;
         
         function showAuthentication() {
-            const dropdown = document.getElementById("sound-dropdown");
             const authButton = document.getElementById("auth_button");
-            dropdown.hidden = true;
             authButton.hidden = false;
         }
 
         function hideAuthentication() {
-            const dropdown = document.getElementById("sound-dropdown");
             const authButton = document.getElementById("auth_button");
-            dropdown.hidden = false;
             authButton.hidden = true;
         }
 

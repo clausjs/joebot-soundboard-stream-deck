@@ -1,6 +1,6 @@
 {
 	"Name": "SPL Soundboard",
-	"Version": "0.2.2.0",
+	"Version": "0.3.1.0",
 	"Author": "Joseph Claus",
 	"Actions": [
 		{
@@ -14,6 +14,20 @@
 					"Image": "imgs/actions/play/play",
 					"Title": "Play",
 					"FontSize": 10
+				}
+			]
+		},
+		{
+			"UUID": "com.joseph-claus.spl-soundboard.play-random",
+			"Name": "Play Random Sound",
+			"Tooltip": "Plays a random sound from Save Point Lodge soundboard",
+			"PropertyInspectorPath": "ui/play-random.html",
+			"Icon": "imgs/actions/play-random/play-random",
+			"States": [
+				{
+					"Image": "imgs/actions/play-random/play-random",
+					"Title": "Random",
+					"FontSize": 12
 				}
 			]
 		}

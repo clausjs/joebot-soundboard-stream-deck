@@ -1,6 +1,7 @@
 import streamDeck, { DidReceiveDeepLinkEvent } from "@elgato/streamdeck";
 
 import { PlaySound } from "./actions/play-sound";
+import { PlayRandom } from "./actions/play-random";
 
 const testing: boolean = false;
 streamDeck.settings.setGlobalSettings({
@@ -24,4 +25,5 @@ streamDeck.system.onDidReceiveDeepLink(async (ev: DidReceiveDeepLinkEvent) => {
 });
 
 streamDeck.actions.registerAction(new PlaySound());
+streamDeck.actions.registerAction(new PlayRandom());
 streamDeck.connect();

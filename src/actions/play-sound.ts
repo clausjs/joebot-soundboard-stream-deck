@@ -1,6 +1,6 @@
 import streamDeck, { action, DidReceiveSettingsEvent, KeyUpEvent, PropertyInspectorDidAppearEvent, SendToPluginEvent, SingletonAction, WillAppearEvent, WillDisappearEvent } from "@elgato/streamdeck";
 import { JsonValue } from "@elgato/utils";
-import { DataSourcePayload, DataSourceResult } from "../sdpi";
+import { DataSourcePayload } from "../sdpi";
 
 const testAuth: boolean = false;
 
@@ -11,8 +11,8 @@ const testAuth: boolean = false;
 export class PlaySound extends SingletonAction<PlaySoundSettings> {
     private settings: SPLSoundboardSettings = {};
     private clips: Sound[] = [];
-    public webUrlBase: string = "https://savepointlodge.com";
-    public botUrlBase: string = "https://joebotdiscord.com";
+    public webUrlBase?: string;
+    public botUrlBase?: string;
 
     constructor() {
         super();
@@ -37,7 +37,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
         const items = this.clips.map((c: Sound) => {
             return {
                 label: c.name,
-                value: JSON.stringify(c)
+                value: c.id
             };
         });
         
@@ -58,6 +58,7 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
      */
     override async onWillAppear(ev: WillAppearEvent<PlaySoundSettings>): Promise<void> {
         this.settings = await streamDeck.settings.getGlobalSettings<SPLSoundboardSettings>();
+        const actionSettings = ev.action.getSettings();
 
         if (this.settings.token && testAuth) {
             this.clearTokenAndRefetch();
@@ -76,8 +77,8 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
 
     override async onDidReceiveSettings(ev: DidReceiveSettingsEvent<PlaySoundSettings>): Promise<void> {
         streamDeck.logger.trace("onDidReceiveSettings - Settings received for PlaySound");
-        const { sound: soundString } = ev.payload.settings || {};
-        const sound = soundString ? JSON.parse(soundString) : null;
+        const { sound: soundId } = ev.payload.settings || {};
+        const sound = this.clips.find((clip) => clip.id === soundId);
         if (sound) {
             streamDeck.logger.trace("onDidReceiveSettings - Setting title to sound name:", sound.name);
             ev.action.setTitle(sound.name);
@@ -114,20 +115,20 @@ export class PlaySound extends SingletonAction<PlaySoundSettings> {
      * settings using `setSettings` and `getSettings`.
      */
     override async onKeyUp(ev: KeyUpEvent<PlaySoundSettings>): Promise<void> {
-        const { sound: soundString } = ev.payload.settings || '{}';
+        const { sound: soundId } = ev.payload.settings || '{}';
         const { token } = this.settings;
 
         if (!token) {
             throw new Error("Token not configured.");
         }
 
-        if (!soundString) {
-            streamDeck.logger.warn("No sound selected to play", soundString);
+        if (!soundId) {
+            streamDeck.logger.warn("This button has no assigned sound.");
             return;
         }
 
         try {
-            const sound: Sound = JSON.parse(soundString);
+            const sound: Sound = this.clips.find((clip) => clip.id === soundId) as Sound;
 
             const req = await fetch(`${this.botUrlBase}/api/soundboard/${token}/postMsg`, {
                 method: "POST",
